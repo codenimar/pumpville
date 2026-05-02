@@ -5,6 +5,11 @@ $data = loadJson('industries.json');
 $industries = $data['industries'] ?? [];
 
 $id = $_GET['id'] ?? '';
+// Only allow safe industry IDs: alphanumeric, hyphens, underscores
+if (!preg_match('/^[a-z0-9_\-]+$/i', $id)) {
+    header('Location: industries.php');
+    exit;
+}
 $industry = null;
 foreach ($industries as $ind) {
     if ($ind['id'] === $id) {

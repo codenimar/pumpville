@@ -15,8 +15,13 @@ if ($action === 'logout') {
 // ==================== LOGIN ====================
 if (!isAdminLoggedIn()) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pin'])) {
-        if ($_POST['pin'] === ADMIN_PIN) {
+        // Basic brute-force protection: max 5 attempts per session
+        $_SESSION['login_attempts'] = ($_SESSION['login_attempts'] ?? 0) + 1;
+        if ($_SESSION['login_attempts'] > 5) {
+            $error = 'Too many failed attempts. Please restart your browser session.';
+        } elseif ($_POST['pin'] === ADMIN_PIN) {
             $_SESSION['admin_logged_in'] = true;
+            $_SESSION['login_attempts'] = 0;
             header('Location: admin.php');
             exit;
         } else {
@@ -187,8 +192,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-fish') {
         $image = trim($imgUrls[$i] ?? '');
         // Handle individual fish image upload
         $uploadKey = 'fish_upload_' . $i;
+        $safeNameForFile = preg_replace('/[^a-z0-9_\-]/', '', strtolower($name));
+        if (empty($safeNameForFile)) $safeNameForFile = 'fish';
         if (!empty($_FILES[$uploadKey]['name'])) {
-            $uploaded = handleUpload($uploadKey, 'fish_' . strtolower(preg_replace('/\s+/', '_', $name)));
+            $uploaded = handleUpload($uploadKey, 'fish_' . $safeNameForFile);
             if ($uploaded) $image = $uploaded;
         }
         $newFish[] = [
@@ -215,14 +222,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-fish') {
 // ==================== UPLOAD HANDLER ====================
 function handleUpload($fileKey, $nameBase) {
     if (empty($_FILES[$fileKey]['tmp_name'])) return null;
+    // File size limit: 2MB
+    if ($_FILES[$fileKey]['size'] > 2 * 1024 * 1024) return null;
     $allowed = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mime  = finfo_file($finfo, $_FILES[$fileKey]['tmp_name']);
     finfo_close($finfo);
     if (!in_array($mime, $allowed)) return null;
     $ext = ['image/png'=>'png','image/jpeg'=>'jpg','image/gif'=>'gif','image/webp'=>'webp'][$mime];
-    $filename = preg_replace('/[^a-z0-9_\-]/', '', strtolower($nameBase)) . '_' . time() . '.' . $ext;
+    // Sanitize base name: only alphanumeric, underscore, hyphen
+    $safeName = preg_replace('/[^a-z0-9_\-]/', '', strtolower($nameBase));
+    if ($safeName === '') $safeName = 'upload';
+    $filename = $safeName . '_' . time() . '.' . $ext;
+    if (!is_dir(UPLOADS_DIR)) mkdir(UPLOADS_DIR, 0755, true);
     $dest = UPLOADS_DIR . $filename;
+    // Verify path stays within UPLOADS_DIR
+    $realDest = realpath(dirname($dest)) . DIRECTORY_SEPARATOR . basename($dest);
+    if (strpos($realDest, realpath(UPLOADS_DIR)) !== 0) return null;
     if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $dest)) {
         return UPLOADS_URL . $filename;
     }
@@ -599,7 +615,7 @@ $pageTitle = 'Admin · $PUMPVILLE';
                 <div>
                     <label class="label">Industry Image</label>
                     <?php if (!empty($editInd['image'])): ?>
-                        <img src="../<?= htmlspecialchars($editInd['image']) ?>" class="w-16 h-16 pixel-img mb-2 rounded-lg">
+                        <img src="<?= htmlspecialchars($editInd['image']) ?>" class="w-16 h-16 pixel-img mb-2 rounded-lg">
                     <?php endif; ?>
                     <input type="file" name="ind_image" accept="image/*" class="input">
                 </div>
@@ -640,7 +656,7 @@ $pageTitle = 'Admin · $PUMPVILLE';
                                 <label class="label">Image</label>
                                 <div class="flex items-center gap-x-3">
                                     <?php if (!empty($fish['image'])): ?>
-                                        <img src="../<?= htmlspecialchars($fish['image']) ?>" class="w-10 h-10 pixel-img rounded">
+                                        <img src="<?= htmlspecialchars($fish['image']) ?>" class="w-10 h-10 pixel-img rounded">
                                     <?php endif; ?>
                                     <input type="hidden" name="fish_image[]" value="<?= htmlspecialchars($fish['image'] ?? '') ?>">
                                     <input type="file" name="fish_upload_<?= $fi ?>" accept="image/*" class="input text-xs">
