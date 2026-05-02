@@ -34,8 +34,8 @@ require_once __DIR__ . '/includes/header.php';
                             <h2 class="title-font text-xl font-semibold group-hover:text-emerald-400 transition-colors">
                                 <?= htmlspecialchars($industry['name']) ?>
                             </h2>
-                            <?php if ($industry['id'] === 'fishing'): ?>
-                                <span class="text-xs text-zinc-500"><?= count($industry['fish'] ?? []) ?> fish types</span>
+                            <?php if (!empty($industry['items'])): ?>
+                                <span class="text-xs text-zinc-500"><?= count($industry['items']) ?> item<?= count($industry['items']) !== 1 ? 's' : '' ?></span>
                             <?php endif; ?>
                         </div>
                     </div>

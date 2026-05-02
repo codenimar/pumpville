@@ -148,7 +148,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-posts') {
     $action = 'posts';
 }
 
-// --- Save industry (general info) ---
+// --- Add new industry ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-add-industry') {
+    $indData2   = loadJson('industries.json');
+    $industries2 = $indData2['industries'] ?? [];
+    $name = trim($_POST['ind_name'] ?? '');
+    $icon = trim($_POST['ind_icon'] ?? '🏭');
+    $desc = trim($_POST['ind_desc'] ?? '');
+    if ($name !== '') {
+        $id = preg_replace('/[^a-z0-9_\-]/', '', strtolower(str_replace(' ', '_', $name)));
+        if ($id === '') $id = 'ind_' . time();
+        if (in_array($id, array_column($industries2, 'id'))) $id .= '_' . time();
+        $image = '';
+        if (!empty($_FILES['ind_image']['name'])) {
+            $up = handleUpload('ind_image', 'industry_' . $id);
+            if ($up) $image = $up;
+        }
+        $industries2[] = [
+            'id' => $id, 'name' => $name, 'icon' => $icon,
+            'description' => $desc, 'image' => $image,
+            'fields' => [['key' => 'rarity', 'label' => 'Rarity', 'type' => 'text']],
+            'items'  => [],
+        ];
+        saveJson('industries.json', ['industries' => $industries2]);
+        $success = 'Industry "' . htmlspecialchars($name) . '" added.';
+    }
+    $action = 'industries';
+}
+
+// --- Delete industry ---
+if ($action === 'delete-industry' && isset($_GET['id'])) {
+    $delId = preg_replace('/[^a-z0-9_\-]/', '', $_GET['id'] ?? '');
+    if ($delId !== '') {
+        $indData2 = loadJson('industries.json');
+        $filtered = array_values(array_filter($indData2['industries'] ?? [], fn($x) => $x['id'] !== $delId));
+        saveJson('industries.json', ['industries' => $filtered]);
+        $success = 'Industry deleted.';
+    }
+    $action = 'industries';
+}
+
+// --- Save industry info ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry') {
     $indId = $_POST['industry_id'] ?? '';
     $data = loadJson('industries.json');
@@ -158,7 +198,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry') {
             $ind['name']        = trim($_POST['ind_name'] ?? $ind['name']);
             $ind['description'] = trim($_POST['ind_desc'] ?? '');
             $ind['icon']        = trim($_POST['ind_icon'] ?? '');
-            // Handle image upload
             if (!empty($_FILES['ind_image']['name'])) {
                 $uploaded = handleUpload('ind_image', 'industry_' . $indId);
                 if ($uploaded) $ind['image'] = $uploaded;
@@ -172,55 +211,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry') {
     $action = 'industry-' . $indId;
 }
 
-// --- Save fish ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-fish') {
-    $indId = $_POST['industry_id'] ?? 'fishing';
-    $data = loadJson('industries.json');
-    $industries = $data['industries'] ?? [];
-
-    $names   = $_POST['fish_name']  ?? [];
-    $xps     = $_POST['fish_xp']    ?? [];
-    $vals    = $_POST['fish_value'] ?? [];
-    $baitsRaw= $_POST['fish_baits'] ?? [];
-    $imgUrls = $_POST['fish_image'] ?? [];
-
-    $newFish = [];
-    foreach ($names as $i => $name) {
-        $name = trim($name);
-        if ($name === '') continue;
-        $baits = array_filter(array_map('trim', explode(',', $baitsRaw[$i] ?? '')));
-        $image = trim($imgUrls[$i] ?? '');
-        // Handle individual fish image upload
-        $uploadKey = 'fish_upload_' . $i;
-        $safeNameForFile = preg_replace('/[^a-z0-9_\-]/', '', strtolower($name));
-        if (empty($safeNameForFile)) $safeNameForFile = 'fish';
-        if (!empty($_FILES[$uploadKey]['name'])) {
-            $uploaded = handleUpload($uploadKey, 'fish_' . $safeNameForFile);
-            if ($uploaded) $image = $uploaded;
-        }
-        $newFish[] = [
-            'name'  => $name,
-            'image' => $image,
-            'xp'    => (int)($xps[$i] ?? 0),
-            'value' => (int)($vals[$i] ?? 0),
-            'baits' => array_values($baits),
-        ];
+// --- Save industry fields ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry-fields') {
+    $indId   = $_POST['industry_id'] ?? '';
+    $data    = loadJson('industries.json');
+    $inds    = $data['industries'] ?? [];
+    $fKeys   = $_POST['field_key']   ?? [];
+    $fLabels = $_POST['field_label'] ?? [];
+    $fTypes  = $_POST['field_type']  ?? [];
+    $fields  = [];
+    foreach ($fKeys as $i => $key) {
+        $key   = preg_replace('/[^a-z0-9_]/', '', strtolower(trim($key)));
+        $label = trim($fLabels[$i] ?? '');
+        $type  = in_array($fTypes[$i] ?? '', ['text', 'number']) ? $fTypes[$i] : 'text';
+        if ($key !== '' && $label !== '') $fields[] = ['key' => $key, 'label' => $label, 'type' => $type];
     }
-
-    foreach ($industries as &$ind) {
-        if ($ind['id'] === $indId) {
-            $ind['fish'] = $newFish;
-            break;
-        }
+    foreach ($inds as &$ind) {
+        if ($ind['id'] === $indId) { $ind['fields'] = $fields; break; }
     }
     unset($ind);
-    saveJson('industries.json', ['industries' => $industries]);
-    $success = 'Fish data saved.';
+    saveJson('industries.json', ['industries' => $inds]);
+    $success = 'Fields saved.';
+    $action = 'industry-' . $indId;
+}
+
+// --- Save industry items ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry-items') {
+    $indId   = $_POST['industry_id'] ?? '';
+    $data    = loadJson('industries.json');
+    $inds    = $data['industries'] ?? [];
+    $names   = $_POST['item_name'] ?? [];
+    $imgUrls = $_POST['item_img']  ?? [];
+    $idxes   = $_POST['item_idx']  ?? [];
+    $fieldKeys = [];
+    foreach ($inds as $ind) {
+        if ($ind['id'] === $indId) { $fieldKeys = array_column($ind['fields'] ?? [], 'key'); break; }
+    }
+    $items = [];
+    foreach ($names as $pos => $name) {
+        $name = trim($name);
+        if ($name === '') continue;
+        $idx   = $idxes[$pos] ?? $pos;
+        $image = trim($imgUrls[$pos] ?? '');
+        $uploadKey = 'item_upload_' . $idx;
+        if (!empty($_FILES[$uploadKey]['name'])) {
+            $safe = preg_replace('/[^a-z0-9_\-]/', '', strtolower($name)) ?: 'item';
+            $up = handleUpload($uploadKey, $indId . '_' . $safe);
+            if ($up) $image = $up;
+        }
+        $item = ['id' => 'item_' . uniqid(), 'name' => $name, 'image' => $image];
+        foreach ($fieldKeys as $fk) {
+            $vals  = $_POST['fv_' . $fk] ?? [];
+            $raw   = trim($vals[$pos] ?? '');
+            // Find field type for this key to cast numbers properly
+            $item[$fk] = $raw;
+        }
+        $items[] = $item;
+    }
+    foreach ($inds as &$ind) {
+        if ($ind['id'] === $indId) { $ind['items'] = $items; break; }
+    }
+    unset($ind);
+    saveJson('industries.json', ['industries' => $inds]);
+    $success = 'Items saved.';
     $action = 'industry-' . $indId;
 }
 
 // ==================== UPLOAD HANDLER ====================
 function handleUpload($fileKey, $nameBase) {
+    $err = $_FILES[$fileKey]['error'] ?? UPLOAD_ERR_NO_FILE;
+    if ($err === UPLOAD_ERR_NO_FILE) return null;
+    if ($err !== UPLOAD_ERR_OK) return null;
     if (empty($_FILES[$fileKey]['tmp_name'])) return null;
     // File size limit: 2MB
     if ($_FILES[$fileKey]['size'] > 2 * 1024 * 1024) return null;
@@ -386,9 +447,9 @@ $pageTitle = 'Admin · $PUMPVILLE';
                 <div class="flex justify-between"><span>Posts</span><span class="text-white"><?= count($postsData['posts'] ?? []) ?> post(s)</span></div>
                 <div class="flex justify-between"><span>Industries</span><span class="text-white"><?= count($industries) ?></span></div>
                 <?php foreach ($industries as $ind):
-                    $fishCount = count($ind['fish'] ?? $ind['crops'] ?? $ind['resources'] ?? []);
+                    $itemCount = count($ind['items'] ?? []);
                 ?>
-                <div class="flex justify-between pl-4"><span><?= htmlspecialchars($ind['name']) ?></span><span class="text-white"><?= $fishCount ?> item(s)</span></div>
+                <div class="flex justify-between pl-4"><span><?= htmlspecialchars($ind['name']) ?></span><span class="text-white"><?= $itemCount ?> item(s)</span></div>
                 <?php endforeach; ?>
             </div>
         </div>
@@ -570,17 +631,56 @@ $pageTitle = 'Admin · $PUMPVILLE';
         // ==================== INDUSTRIES LIST ====================
         elseif ($subpage === 'industries'):
         ?>
-        <div class="space-y-3">
+        <div class="space-y-3 mb-8">
             <?php foreach ($industries as $ind): ?>
             <div class="glass border border-white/10 rounded-2xl p-5 flex items-center gap-x-4">
-                <span class="text-3xl"><?= htmlspecialchars($ind['icon'] ?? '') ?></span>
-                <div class="flex-1">
+                <?php if (!empty($ind['image'])): ?>
+                    <img src="<?= htmlspecialchars($ind['image']) ?>" class="w-12 h-12 object-contain rounded-xl bg-zinc-800 p-1 pixel-img flex-shrink-0">
+                <?php else: ?>
+                    <span class="text-3xl w-12 text-center flex-shrink-0"><?= htmlspecialchars($ind['icon'] ?? '🏭') ?></span>
+                <?php endif; ?>
+                <div class="flex-1 min-w-0">
                     <p class="font-semibold"><?= htmlspecialchars($ind['name']) ?></p>
-                    <p class="text-zinc-400 text-sm"><?= htmlspecialchars(mb_substr($ind['description'] ?? '', 0, 80)) ?>…</p>
+                    <p class="text-zinc-500 text-xs"><?= count($ind['items'] ?? []) ?> item(s) · <?= count($ind['fields'] ?? []) ?> field(s)</p>
                 </div>
-                <a href="admin.php?action=industry-<?= urlencode($ind['id']) ?>" class="btn-primary">Edit</a>
+                <a href="admin.php?action=industry-<?= urlencode($ind['id']) ?>" class="btn-primary text-xs px-3 py-2">Edit</a>
+                <a href="admin.php?action=delete-industry&id=<?= urlencode($ind['id']) ?>"
+                   onclick="return confirm('Delete <?= addslashes(htmlspecialchars($ind['name'])) ?>? This cannot be undone.')"
+                   class="btn-danger text-xs px-3 py-2">Delete</a>
             </div>
             <?php endforeach; ?>
+            <?php if (empty($industries)): ?>
+            <div class="glass border border-white/10 rounded-2xl p-12 text-center text-zinc-400">
+                <div class="text-4xl mb-3">🏭</div>
+                <p>No industries yet. Add one below.</p>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Add new industry -->
+        <div class="glass border border-emerald-500/20 rounded-2xl p-6">
+            <h2 class="font-semibold text-lg mb-5">Add New Industry</h2>
+            <form method="POST" action="admin.php?action=save-add-industry" enctype="multipart/form-data">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="label">Name</label>
+                        <input type="text" name="ind_name" class="input" placeholder="e.g. Fishing" required>
+                    </div>
+                    <div>
+                        <label class="label">Icon (emoji)</label>
+                        <input type="text" name="ind_icon" class="input" placeholder="🏭" value="🏭">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="label">Description</label>
+                    <textarea name="ind_desc" rows="2" class="input resize-none" placeholder="Short description..."></textarea>
+                </div>
+                <div class="mb-5">
+                    <label class="label">Image (optional)</label>
+                    <input type="file" name="ind_image" accept="image/*" class="input">
+                </div>
+                <button type="submit" class="btn-primary">Add Industry</button>
+            </form>
         </div>
 
         <?php
@@ -593,14 +693,17 @@ $pageTitle = 'Admin · $PUMPVILLE';
         }
         if (!$editInd): ?>
             <p class="text-red-400">Industry not found.</p>
-        <?php else: ?>
+        <?php else:
+        $editFields = $editInd['fields'] ?? [];
+        $editItems  = $editInd['items']  ?? [];
+        ?>
 
-        <!-- Industry general info form -->
-        <form method="POST" action="admin.php?action=save-industry" enctype="multipart/form-data" class="mb-10">
-            <input type="hidden" name="industry_id" value="<?= htmlspecialchars($editInd['id']) ?>">
-            <div class="space-y-4 max-w-2xl">
-                <h2 class="font-semibold text-lg">Industry Info</h2>
-                <div class="grid grid-cols-2 gap-4">
+        <!-- SECTION 1: Industry Info -->
+        <div class="glass border border-white/10 rounded-2xl p-6 mb-6">
+            <h2 class="font-semibold text-lg mb-5">Industry Info</h2>
+            <form method="POST" action="admin.php?action=save-industry" enctype="multipart/form-data">
+                <input type="hidden" name="industry_id" value="<?= htmlspecialchars($editInd['id']) ?>">
+                <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="label">Name</label>
                         <input type="text" name="ind_name" value="<?= htmlspecialchars($editInd['name'] ?? '') ?>" class="input">
@@ -610,103 +713,158 @@ $pageTitle = 'Admin · $PUMPVILLE';
                         <input type="text" name="ind_icon" value="<?= htmlspecialchars($editInd['icon'] ?? '') ?>" class="input">
                     </div>
                 </div>
-                <div>
+                <div class="mb-4">
                     <label class="label">Description</label>
                     <textarea name="ind_desc" rows="3" class="input resize-none"><?= htmlspecialchars($editInd['description'] ?? '') ?></textarea>
                 </div>
-                <div>
+                <div class="mb-5">
                     <label class="label">Industry Image</label>
                     <?php if (!empty($editInd['image'])): ?>
-                        <img src="<?= htmlspecialchars($editInd['image']) ?>" class="w-16 h-16 pixel-img mb-2 rounded-lg">
+                        <img src="<?= htmlspecialchars($editInd['image']) ?>" class="w-16 h-16 object-contain pixel-img mb-2 rounded-lg bg-zinc-800 p-1">
                     <?php endif; ?>
                     <input type="file" name="ind_image" accept="image/*" class="input">
                 </div>
-                <button type="submit" class="btn-primary">Save Industry Info</button>
-            </div>
-        </form>
+                <button type="submit" class="btn-primary">Save Info</button>
+            </form>
+        </div>
 
-        <?php if ($editInd['id'] === 'fishing'): ?>
+        <!-- SECTION 2: Custom Fields -->
+        <div class="glass border border-white/10 rounded-2xl p-6 mb-6">
+            <h2 class="font-semibold text-lg mb-5">Custom Fields</h2>
+            <form method="POST" action="admin.php?action=save-industry-fields">
+                <input type="hidden" name="industry_id" value="<?= htmlspecialchars($editInd['id']) ?>">
+                <div class="grid grid-cols-3 gap-2 mb-2 px-1">
+                    <span class="label mb-0">Key</span>
+                    <span class="label mb-0">Label</span>
+                    <span class="label mb-0">Type</span>
+                </div>
+                <div id="fields-list" class="space-y-2 mb-4">
+                    <?php foreach ($editFields as $f): ?>
+                    <div class="flex gap-x-2 field-row items-center">
+                        <input type="text" name="field_key[]" value="<?= htmlspecialchars($f['key']) ?>"
+                               placeholder="key" class="input w-36 font-mono text-xs" readonly
+                               title="Key cannot be changed after creation (would orphan item data)">
+                        <input type="text" name="field_label[]" value="<?= htmlspecialchars($f['label']) ?>"
+                               placeholder="Label" class="input flex-1">
+                        <select name="field_type[]" class="input w-28">
+                            <option value="text"   <?= ($f['type'] === 'text')   ? 'selected' : '' ?>>Text</option>
+                            <option value="number" <?= ($f['type'] === 'number') ? 'selected' : '' ?>>Number</option>
+                        </select>
+                        <button type="button" onclick="this.closest('.field-row').remove()" class="btn-danger">✕</button>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <div class="flex items-center gap-x-3 mb-4">
+                    <button type="button" onclick="addField()" class="text-sm text-emerald-400 hover:underline">+ Add field</button>
+                </div>
+                <p class="text-xs text-zinc-500 mb-4">⚠️ Field keys cannot be changed after creation. Removing a field hides it from the display but does not delete data from existing items.</p>
+                <button type="submit" class="btn-primary">Save Fields</button>
+            </form>
+        </div>
 
-        <!-- Fish editor -->
-        <div class="border-t border-white/10 pt-8">
-            <h2 class="font-semibold text-lg mb-6">Fish List (<?= count($editInd['fish'] ?? []) ?> fish)</h2>
-            <form method="POST" action="admin.php?action=save-fish" enctype="multipart/form-data">
-                <input type="hidden" name="industry_id" value="fishing">
-                <div id="fish-list" class="space-y-4 mb-6">
-                    <?php foreach (($editInd['fish'] ?? []) as $fi => $fish): ?>
-                    <div class="glass border border-white/10 rounded-2xl p-5 fish-row">
-                        <div class="grid grid-cols-4 gap-4 mb-3">
-                            <div class="col-span-2">
-                                <label class="label">Fish Name</label>
-                                <input type="text" name="fish_name[]" value="<?= htmlspecialchars($fish['name'] ?? '') ?>" class="input" placeholder="e.g. Bass">
-                            </div>
-                            <div>
-                                <label class="label">XP Reward</label>
-                                <input type="number" name="fish_xp[]" value="<?= (int)($fish['xp'] ?? 0) ?>" class="input" min="0">
-                            </div>
-                            <div>
-                                <label class="label">Value (coins)</label>
-                                <input type="number" name="fish_value[]" value="<?= (int)($fish['value'] ?? 0) ?>" class="input" min="0">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4 mb-3">
-                            <div>
-                                <label class="label">Baits (comma-separated)</label>
-                                <input type="text" name="fish_baits[]" value="<?= htmlspecialchars(implode(', ', $fish['baits'] ?? [])) ?>" class="input" placeholder="Worm, Minnow">
-                            </div>
-                            <div>
-                                <label class="label">Image</label>
-                                <div class="flex items-center gap-x-3">
-                                    <?php if (!empty($fish['image'])): ?>
-                                        <img src="<?= htmlspecialchars($fish['image']) ?>" class="w-10 h-10 pixel-img rounded">
-                                    <?php endif; ?>
-                                    <input type="hidden" name="fish_image[]" value="<?= htmlspecialchars($fish['image'] ?? '') ?>">
-                                    <input type="file" name="fish_upload_<?= $fi ?>" accept="image/*" class="input text-xs">
-                                </div>
-                            </div>
-                        </div>
-                        <button type="button" onclick="this.closest('.fish-row').remove()" class="btn-danger">Remove Fish</button>
+        <!-- SECTION 3: Items -->
+        <div class="glass border border-white/10 rounded-2xl p-6">
+            <h2 class="font-semibold text-lg mb-5">
+                Items
+                <span class="text-zinc-500 font-normal text-sm ml-2">(<?= count($editItems) ?>)</span>
+            </h2>
+            <form method="POST" action="admin.php?action=save-industry-items" enctype="multipart/form-data">
+                <input type="hidden" name="industry_id" value="<?= htmlspecialchars($editInd['id']) ?>">
+                <?php if (!empty($editFields)): ?>
+                <div class="hidden lg:flex gap-2 mb-2 px-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                    <span style="min-width:120px;flex:2;">Name</span>
+                    <?php foreach ($editFields as $f): ?>
+                        <span style="min-width:80px;flex:1;"><?= htmlspecialchars($f['label']) ?></span>
+                    <?php endforeach; ?>
+                    <span style="min-width:120px;flex:1.5;">Upload Image</span>
+                    <span class="w-8"></span>
+                </div>
+                <?php endif; ?>
+                <div id="items-list" class="space-y-2 mb-5">
+                    <?php foreach ($editItems as $ii => $item): ?>
+                    <div class="item-row flex flex-wrap gap-2 items-center bg-zinc-800/50 border border-white/5 rounded-xl p-3">
+                        <input type="hidden" name="item_idx[]" value="<?= $ii ?>">
+                        <input type="text" name="item_name[]" value="<?= htmlspecialchars($item['name'] ?? '') ?>"
+                               placeholder="Name" class="input" style="min-width:120px;flex:2;">
+                        <?php if (!empty($item['image'])): ?>
+                            <img src="<?= htmlspecialchars($item['image']) ?>"
+                                 class="w-8 h-8 object-contain rounded pixel-img bg-zinc-700 p-0.5 flex-shrink-0">
+                        <?php endif; ?>
+                        <input type="hidden" name="item_img[]" value="<?= htmlspecialchars($item['image'] ?? '') ?>">
+                        <?php foreach ($editFields as $f): ?>
+                            <input type="<?= $f['type'] === 'number' ? 'number' : 'text' ?>"
+                                   name="fv_<?= htmlspecialchars($f['key']) ?>[]"
+                                   value="<?= htmlspecialchars($item[$f['key']] ?? '') ?>"
+                                   placeholder="<?= htmlspecialchars($f['label']) ?>"
+                                   class="input"
+                                   style="min-width:80px;flex:1;"
+                                   <?= $f['type'] === 'number' ? 'min="0"' : '' ?>>
+                        <?php endforeach; ?>
+                        <input type="file" name="item_upload_<?= $ii ?>" accept="image/*" class="input text-xs" style="min-width:120px;flex:1.5;">
+                        <button type="button" onclick="this.closest('.item-row').remove()" class="btn-danger flex-shrink-0">✕</button>
                     </div>
                     <?php endforeach; ?>
                 </div>
                 <div class="flex gap-x-3">
-                    <button type="button" onclick="addFish()" class="text-sm text-emerald-400 hover:underline">+ Add fish</button>
-                    <button type="submit" class="btn-primary ml-auto">Save Fish Data</button>
+                    <button type="button" onclick="addItem()" class="text-sm text-emerald-400 hover:underline">+ Add item</button>
+                    <button type="submit" class="btn-primary ml-auto">Save Items</button>
                 </div>
             </form>
         </div>
+
         <script>
-        let fishCount = <?= count($editInd['fish'] ?? []) ?>;
-        function addFish() {
-            const list = document.getElementById('fish-list');
-            const idx = fishCount++;
-            const div = document.createElement('div');
-            div.className = 'fish-row';
-            div.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:1rem;padding:1.25rem;';
-            div.innerHTML = `
-                <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem;margin-bottom:0.75rem;">
-                    <div><label style="font-size:0.75rem;font-weight:500;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.375rem;display:block;">Fish Name</label>
-                    <input type="text" name="fish_name[]" placeholder="e.g. Tuna" style="background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;width:100%;color:#fff;font-size:0.875rem;"></div>
-                    <div><label style="font-size:0.75rem;font-weight:500;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.375rem;display:block;">XP</label>
-                    <input type="number" name="fish_xp[]" value="0" min="0" style="background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;width:100%;color:#fff;font-size:0.875rem;"></div>
-                    <div><label style="font-size:0.75rem;font-weight:500;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.375rem;display:block;">Value (coins)</label>
-                    <input type="number" name="fish_value[]" value="0" min="0" style="background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;width:100%;color:#fff;font-size:0.875rem;"></div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0.75rem;">
-                    <div><label style="font-size:0.75rem;font-weight:500;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.375rem;display:block;">Baits (comma-separated)</label>
-                    <input type="text" name="fish_baits[]" placeholder="Worm, Minnow" style="background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;width:100%;color:#fff;font-size:0.875rem;"></div>
-                    <div><label style="font-size:0.75rem;font-weight:500;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.375rem;display:block;">Image Upload</label>
-                    <input type="hidden" name="fish_image[]" value="">
-                    <input type="file" name="fish_upload_${idx}" accept="image/*" style="background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;width:100%;color:#fff;font-size:0.875rem;"></div>
-                </div>
-                <button type="button" onclick="this.closest('.fish-row').remove()" style="background:#ef4444;color:#fff;padding:0.4rem 0.875rem;border-radius:0.625rem;font-size:0.75rem;font-weight:600;cursor:pointer;">Remove Fish</button>`;
-            list.appendChild(div);
+        // ── Fields ──
+        function addField() {
+            const list = document.getElementById('fields-list');
+            const row = document.createElement('div');
+            row.className = 'flex gap-x-2 field-row items-center';
+            const s = 'background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;color:#fff;font-size:0.875rem;';
+            row.innerHTML = `
+                <input type="text" name="field_key[]" placeholder="key (e.g. rarity)"
+                       style="${s}width:9rem;font-family:monospace;font-size:0.75rem;">
+                <input type="text" name="field_label[]" placeholder="Label"
+                       style="${s}flex:1;">
+                <select name="field_type[]" style="${s}min-width:7rem;">
+                    <option value="text">Text</option>
+                    <option value="number">Number</option>
+                </select>
+                <button type="button" onclick="this.closest('.field-row').remove()"
+                        style="background:#ef4444;color:#fff;padding:0.4rem 0.875rem;border-radius:0.625rem;font-size:0.75rem;font-weight:600;cursor:pointer;">✕</button>`;
+            list.appendChild(row);
+            row.querySelector('input[name="field_key[]"]').focus();
+        }
+
+        // ── Items ──
+        let itemCounter = <?= count($editItems) ?>;
+        const fieldDefs = <?= json_encode(
+            array_map(fn($f) => ['key' => $f['key'], 'label' => $f['label'], 'type' => $f['type']], $editFields),
+            JSON_HEX_TAG | JSON_HEX_AMP
+        ) ?>;
+
+        function addItem() {
+            const list = document.getElementById('items-list');
+            const idx = itemCounter++;
+            const row = document.createElement('div');
+            row.className = 'item-row flex flex-wrap gap-2 items-center bg-zinc-800/50 border border-white/5 rounded-xl p-3';
+            const s = 'background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;color:#fff;font-size:0.875rem;';
+            let fieldsHtml = '';
+            fieldDefs.forEach(f => {
+                const t = f.type === 'number' ? 'number' : 'text';
+                const m = f.type === 'number' ? 'min="0"' : '';
+                fieldsHtml += `<input type="${t}" name="fv_${f.key}[]" placeholder="${f.label}" ${m} style="${s}min-width:80px;flex:1;">`;
+            });
+            row.innerHTML = `
+                <input type="hidden" name="item_idx[]" value="${idx}">
+                <input type="text" name="item_name[]" placeholder="Name" style="${s}min-width:120px;flex:2;">
+                <input type="hidden" name="item_img[]" value="">
+                ${fieldsHtml}
+                <input type="file" name="item_upload_${idx}" accept="image/*" style="${s}min-width:120px;flex:1.5;">
+                <button type="button" onclick="this.closest('.item-row').remove()"
+                        style="background:#ef4444;color:#fff;padding:0.4rem 0.875rem;border-radius:0.625rem;font-size:0.75rem;font-weight:600;cursor:pointer;flex-shrink:0;">✕</button>`;
+            list.appendChild(row);
+            row.querySelector('input[name="item_name[]"]').focus();
         }
         </script>
-
-        <?php else: ?>
-        <p class="text-zinc-400 text-sm mt-4">Detailed content editor coming soon for this industry.</p>
-        <?php endif; ?>
 
         <?php endif; // $editInd exists ?>
 
