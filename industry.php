@@ -11,7 +11,10 @@ if (!preg_match('/^[a-z0-9_\-]+$/i', $id)) {
 }
 $industry = null;
 foreach ($industries as $ind) {
-    if ($ind['id'] === $id) { $industry = $ind; break; }
+    if ($ind['id'] === $id) {
+        $industry = $ind;
+        break;
+    }
 }
 if (!$industry) {
     header('Location: industries.php');

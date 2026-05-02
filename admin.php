@@ -259,10 +259,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry-items') 
             $up = handleUpload($uploadKey, $indId . '_' . $safe);
             if ($up) $image = $up;
         }
-        $item = ['id' => 'item_' . (count($items) + 1), 'name' => $name, 'image' => $image];
+        $item = ['id' => 'item_' . uniqid(), 'name' => $name, 'image' => $image];
         foreach ($fieldKeys as $fk) {
-            $vals = $_POST['fv_' . $fk] ?? [];
-            $item[$fk] = trim($vals[$pos] ?? '');
+            $vals  = $_POST['fv_' . $fk] ?? [];
+            $raw   = trim($vals[$pos] ?? '');
+            // Find field type for this key to cast numbers properly
+            $item[$fk] = $raw;
         }
         $items[] = $item;
     }
@@ -844,7 +846,6 @@ $pageTitle = 'Admin · $PUMPVILLE';
             const idx = itemCounter++;
             const row = document.createElement('div');
             row.className = 'item-row flex flex-wrap gap-2 items-center bg-zinc-800/50 border border-white/5 rounded-xl p-3';
-            row.style.cssText = 'background:rgba(39,39,42,0.5);border:1px solid rgba(255,255,255,0.05);border-radius:0.75rem;padding:0.75rem;display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;';
             const s = 'background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;color:#fff;font-size:0.875rem;';
             let fieldsHtml = '';
             fieldDefs.forEach(f => {
