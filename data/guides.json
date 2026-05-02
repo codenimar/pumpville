@@ -1,0 +1,22 @@
+{
+    "videos": [
+        {
+            "id": 1,
+            "title": "Pumpville Beginners Guide — Getting Started",
+            "youtube_id": "",
+            "description": "Everything you need to know to start playing Pumpville and earning $PUMPVILLE tokens."
+        },
+        {
+            "id": 2,
+            "title": "How to Fish in Pumpville — Complete Guide",
+            "youtube_id": "",
+            "description": "Learn all fishing mechanics, the best baits, and which fish give the most XP."
+        },
+        {
+            "id": 3,
+            "title": "Pumpville Industries Explained",
+            "youtube_id": "",
+            "description": "An overview of every industry in Pumpville and how to make the most coins."
+        }
+    ]
+}
