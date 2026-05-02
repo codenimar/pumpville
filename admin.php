@@ -236,9 +236,11 @@ function handleUpload($fileKey, $nameBase) {
     $filename = $safeName . '_' . time() . '.' . $ext;
     if (!is_dir(UPLOADS_DIR)) mkdir(UPLOADS_DIR, 0755, true);
     $dest = UPLOADS_DIR . $filename;
-    // Verify path stays within UPLOADS_DIR
-    $realDest = realpath(dirname($dest)) . DIRECTORY_SEPARATOR . basename($dest);
-    if (strpos($realDest, realpath(UPLOADS_DIR)) !== 0) return null;
+    // Verify destination stays within UPLOADS_DIR (realpath after mkdir so dir exists)
+    $uploadsReal = realpath(UPLOADS_DIR);
+    if ($uploadsReal === false) return null;
+    $destReal = $uploadsReal . DIRECTORY_SEPARATOR . $filename;
+    if (strpos($destReal, $uploadsReal . DIRECTORY_SEPARATOR) !== 0) return null;
     if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $dest)) {
         return UPLOADS_URL . $filename;
     }
