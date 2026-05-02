@@ -1,12 +1,6 @@
 <?php
-/**
- * PROFESSIONAL $PUMPVILLE Token Supply + Community + Price Dashboard
- * 
- * FIXED:
- * • Number scaling is now SMOOTH and stable (debounced + CSS clamp base)
- * • X followers scraper replaced with reliable public fxTwitter API (no more HTML scraping issues)
- * • Everything fits perfectly on any screen size
- */
+require_once __DIR__ . '/includes/auth.php';
+$pageTitle = '$PUMPVILLE · Live Token Dashboard';
 
 $mint_address = '72FkeF1cpBMtbordhTVNVbBGdaN5DfHcchstHwPWpump';
 $original_supply = 1000000000;
@@ -131,73 +125,56 @@ $x_followers     = getXFollowers();
 $discord_members = getDiscordMembers();
 
 $last_updated = date('M j, Y • g:i A T');
+$token = loadJson('token.json');
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>$PUMPVILLE • Live Supply, Price &amp; Community</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+<?php require_once __DIR__ . '/includes/header.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
-        
-        body { font-family: 'Inter', system-ui, sans-serif; }
-        .title-font { font-family: 'Space Grotesk', sans-serif; }
-        
-        .glass {
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(16px);
-        }
-        
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(16px); }
         .stat-value {
             font-size: clamp(2.2rem, 5vw, 3rem);
             line-height: 1.05;
             white-space: nowrap;
             transition: transform 0.1s ease;
         }
-        
-        .card {
-            padding: 24px 28px;
-            min-height: 178px;
-        }
+        .card { padding: 24px 28px; min-height: 178px; }
     </style>
-</head>
-<body class="bg-zinc-950 text-white min-h-screen">
-    <div class="max-w-7xl mx-auto px-6 py-8">
-        
+
+        <!-- Token Info Banner -->
+        <?php if (!empty($token['description'])): ?>
+        <div class="glass border border-emerald-500/20 rounded-2xl p-4 mb-8 flex items-start gap-x-4">
+            <span class="text-2xl mt-0.5">🐸</span>
+            <div>
+                <p class="font-semibold text-emerald-400 text-sm mb-1"><?= htmlspecialchars($token['title'] ?? '$PUMPVILLE Token') ?></p>
+                <p class="text-zinc-300 text-sm"><?= htmlspecialchars($token['description']) ?></p>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Header -->
         <div class="flex items-center justify-between mb-10">
-            <div class="flex items-center gap-x-4">
-                <div class="w-11 h-11 bg-emerald-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/30">🐸</div>
-                <div>
-                    <h1 class="title-font text-4xl font-semibold tracking-tighter">$PUMPVILLE</h1>
-                    <p class="text-emerald-400 text-sm font-medium tracking-[2px]">LIVE DASHBOARD</p>
-                </div>
-            </div>
-            
-            <div class="flex items-center gap-x-6">
-                <div class="flex items-center gap-x-2 text-sm">
+            <div>
+                <h1 class="title-font text-3xl font-semibold tracking-tight">Live Token Dashboard</h1>
+                <div class="flex items-center gap-x-2 text-sm mt-1">
                     <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                     <span class="text-emerald-400 font-medium">LIVE • Solana Mainnet</span>
                 </div>
-                
+            </div>
+            
+            <div class="flex items-center gap-x-3">
                 <a href="https://solscan.io/token/72FkeF1cpBMtbordhTVNVbBGdaN5DfHcchstHwPWpump" 
                    target="_blank"
-                   class="flex items-center gap-x-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 rounded-3xl text-sm font-medium transition-all">
-                    <span>View on Solscan</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   class="flex items-center gap-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-2xl text-sm font-medium transition-all">
+                    <span>Solscan</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
                     </svg>
                 </a>
-                
-                <a href="https://x.com/PumpvilleWorld" target="_blank" class="flex items-center gap-x-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 rounded-3xl text-sm font-medium transition-all">
+                <a href="https://x.com/PumpvilleWorld" target="_blank" class="flex items-center gap-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-2xl text-sm font-medium transition-all">
                     <span class="text-sky-400">𝕏</span>
                     <span>@PumpvilleWorld</span>
                 </a>
-                
-                <a href="https://discord.gg/pumpville" target="_blank" class="flex items-center gap-x-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-3xl text-sm font-medium transition-all">
+                <a href="https://discord.gg/pumpville" target="_blank" class="flex items-center gap-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-2xl text-sm font-medium transition-all">
                     Discord
                 </a>
             </div>
@@ -316,7 +293,6 @@ $last_updated = date('M j, Y • g:i A T');
             </div>
             <div class="mt-3 md:mt-0">Powered by Solana RPC • Dexscreener • fxTwitter • Pure PHP</div>
         </div>
-    </div>
 
     <script>
         tailwind.config = { content: [] };
@@ -405,5 +381,5 @@ $last_updated = date('M j, Y • g:i A T');
 
         console.log('%c$PUMPVILLE Dashboard – Smooth scaling + reliable fxTwitter API for X followers ✓', 'color:#00ff9d; font-family:monospace');
     </script>
-</body>
-</html>
+
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

@@ -1,0 +1,92 @@
+{
+    "industries": [
+        {
+            "id": "fishing",
+            "name": "Fishing",
+            "icon": "🎣",
+            "description": "Cast your line and reel in a variety of fish to earn XP and coins. Different baits attract different fish — master the art of fishing to find the rarest catches.",
+            "image": "",
+            "fish": [
+                {
+                    "name": "Bass",
+                    "image": "assets/bass.png",
+                    "xp": 15,
+                    "value": 25,
+                    "baits": ["Worm", "Minnow"]
+                },
+                {
+                    "name": "Goldfish",
+                    "image": "assets/goldfish.png",
+                    "xp": 5,
+                    "value": 10,
+                    "baits": ["Worm", "Bread"]
+                },
+                {
+                    "name": "Trout",
+                    "image": "",
+                    "xp": 20,
+                    "value": 35,
+                    "baits": ["Fly", "Worm"]
+                },
+                {
+                    "name": "Catfish",
+                    "image": "",
+                    "xp": 25,
+                    "value": 40,
+                    "baits": ["Chicken Liver", "Worm"]
+                },
+                {
+                    "name": "Carp",
+                    "image": "",
+                    "xp": 10,
+                    "value": 15,
+                    "baits": ["Bread", "Corn"]
+                },
+                {
+                    "name": "Perch",
+                    "image": "",
+                    "xp": 12,
+                    "value": 20,
+                    "baits": ["Worm", "Minnow"]
+                },
+                {
+                    "name": "Salmon",
+                    "image": "",
+                    "xp": 30,
+                    "value": 50,
+                    "baits": ["Fly", "Spinner"]
+                },
+                {
+                    "name": "Pike",
+                    "image": "",
+                    "xp": 35,
+                    "value": 60,
+                    "baits": ["Minnow", "Spinner"]
+                },
+                {
+                    "name": "Tilapia",
+                    "image": "",
+                    "xp": 8,
+                    "value": 12,
+                    "baits": ["Worm", "Bread"]
+                }
+            ]
+        },
+        {
+            "id": "farming",
+            "name": "Farming",
+            "icon": "🌾",
+            "description": "Grow crops and harvest resources to supply the Pumpville economy. Trade your produce for coins and XP.",
+            "image": "",
+            "crops": []
+        },
+        {
+            "id": "mining",
+            "name": "Mining",
+            "icon": "⛏️",
+            "description": "Dig deep into the earth to find valuable ores and gems. Mine resources to craft powerful items.",
+            "image": "",
+            "resources": []
+        }
+    ]
+}
