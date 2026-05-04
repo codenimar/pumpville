@@ -39,8 +39,8 @@
                 <a href="<?= $href ?>" class="nav-link <?= $active ?> px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/5"><?= $label ?></a>
             <?php endforeach; ?>
         </div>
-        <a href="admin.php" class="px-4 py-2 text-xs font-medium text-zinc-500 hover:text-zinc-300 transition-colors">Admin</a>
     </div>
 </nav>
 
 <div class="max-w-7xl mx-auto px-6 py-8">
+
