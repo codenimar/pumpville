@@ -4,7 +4,7 @@
     <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
         <div class="flex items-center gap-x-3">
             <span class="text-2xl">🐸</span>
-            <span>$PUMPVILLE · Third-party fan site · Not affiliated with official team</span>
+            <span>PumpVille.info · Third-party fan site · Not affiliated with official team</span>
         </div>
         <div class="flex items-center gap-x-4">
             <a href="https://x.com/PumpvilleWorld" target="_blank" class="hover:text-sky-400 transition-colors">𝕏 Twitter</a>
