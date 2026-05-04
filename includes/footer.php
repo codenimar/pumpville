@@ -3,7 +3,7 @@
 <footer class="border-t border-white/10 mt-16">
     <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
         <div class="flex items-center gap-x-3">
-            <span class="text-2xl">🐸</span>
+            <img src="assets/logo.svg" alt="PumpVille" class="w-6 h-6 pixel-img">
             <span>PumpVille.info · Third-party fan site · Not affiliated with official team</span>
         </div>
         <div class="flex items-center gap-x-4">
