@@ -18,7 +18,6 @@ if ($action === 'logout') {
 // ==================== LOGIN ====================
 if (!isAdminLoggedIn()) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pin'])) {
-        // Basic brute-force protection: max 5 attempts per session
         $_SESSION['login_attempts'] = ($_SESSION['login_attempts'] ?? 0) + 1;
         if ($_SESSION['login_attempts'] > 5) {
             $error = 'Too many failed attempts. Please restart your browser session.';
@@ -31,7 +30,6 @@ if (!isAdminLoggedIn()) {
             $error = 'Incorrect PIN. Please try again.';
         }
     }
-    // Show login page
     $pageTitle = 'Admin Login · $PUMPVILLE';
     ?>
 <!DOCTYPE html>
@@ -89,7 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-token') {
     $links['solscan']     = trim($_POST['link_solscan'] ?? '');
     $links['dexscreener'] = trim($_POST['link_dexscreener'] ?? '');
     $token['links'] = $links;
-    // highlights: rebuild from posted arrays
     $hIcons = $_POST['h_icon'] ?? [];
     $hTexts = $_POST['h_text'] ?? [];
     $highlights = [];
@@ -168,116 +165,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-add-industry') {
             if ($up) $image = $up;
         }
         $industries2[] = [
-            'id' => $id, 'name' => $name, 'icon' => $icon,
-            'description' => $desc, 'image' => $image,
-            'fields' => [['key' => 'rarity', 'label' => 'Rarity', 'type' => 'text']],
-            'items'  => [],
+            'id' => $id,
+            'name' => $name,
+            'icon' => $icon,
+            'description' => $desc,
+            'image' => $image,
+            'items' => []
         ];
         saveJson('industries.json', ['industries' => $industries2]);
-        $success = 'Industry "' . htmlspecialchars($name) . '" added.';
+        $success = 'New industry added.';
+        $action = 'industries';
     }
-    $action = 'industries';
-}
-
-// --- Delete industry ---
-if ($action === 'delete-industry' && isset($_GET['id'])) {
-    $delId = preg_replace('/[^a-z0-9_\-]/', '', $_GET['id'] ?? '');
-    if ($delId !== '') {
-        $indData2 = loadJson('industries.json');
-        $filtered = array_values(array_filter($indData2['industries'] ?? [], fn($x) => $x['id'] !== $delId));
-        saveJson('industries.json', ['industries' => $filtered]);
-        $success = 'Industry deleted.';
-    }
-    $action = 'industries';
-}
-
-// --- Save industry info ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry') {
-    $indId = $_POST['industry_id'] ?? '';
-    $data = loadJson('industries.json');
-    $industries = $data['industries'] ?? [];
-    foreach ($industries as &$ind) {
-        if ($ind['id'] === $indId) {
-            $ind['name']        = trim($_POST['ind_name'] ?? $ind['name']);
-            $ind['description'] = trim($_POST['ind_desc'] ?? '');
-            $ind['icon']        = trim($_POST['ind_icon'] ?? '');
-            if (!empty($_FILES['ind_image']['name'])) {
-                $uploaded = handleUpload('ind_image', 'industry_' . $indId);
-                if ($uploaded) $ind['image'] = $uploaded;
-            }
-            break;
-        }
-    }
-    unset($ind);
-    saveJson('industries.json', ['industries' => $industries]);
-    $success = 'Industry info saved.';
-    $action = 'industry-' . $indId;
-}
-
-// --- Save industry fields ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry-fields') {
-    $indId   = $_POST['industry_id'] ?? '';
-    $data    = loadJson('industries.json');
-    $inds    = $data['industries'] ?? [];
-    $fKeys   = $_POST['field_key']   ?? [];
-    $fLabels = $_POST['field_label'] ?? [];
-    $fTypes  = $_POST['field_type']  ?? [];
-    $fields  = [];
-    foreach ($fKeys as $i => $key) {
-        $key   = preg_replace('/[^a-z0-9_]/', '', strtolower(trim($key)));
-        $label = trim($fLabels[$i] ?? '');
-        $type  = in_array($fTypes[$i] ?? '', ['text', 'number']) ? $fTypes[$i] : 'text';
-        if ($key !== '' && $label !== '') $fields[] = ['key' => $key, 'label' => $label, 'type' => $type];
-    }
-    foreach ($inds as &$ind) {
-        if ($ind['id'] === $indId) { $ind['fields'] = $fields; break; }
-    }
-    unset($ind);
-    saveJson('industries.json', ['industries' => $inds]);
-    $success = 'Fields saved.';
-    $action = 'industry-' . $indId;
-}
-
-// --- Save industry items ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry-items') {
-    $indId   = $_POST['industry_id'] ?? '';
-    $data    = loadJson('industries.json');
-    $inds    = $data['industries'] ?? [];
-    $names   = $_POST['item_name'] ?? [];
-    $imgUrls = $_POST['item_img']  ?? [];
-    $idxes   = $_POST['item_idx']  ?? [];
-    $fieldKeys = [];
-    foreach ($inds as $ind) {
-        if ($ind['id'] === $indId) { $fieldKeys = array_column($ind['fields'] ?? [], 'key'); break; }
-    }
-    $items = [];
-    foreach ($names as $pos => $name) {
-        $name = trim($name);
-        if ($name === '') continue;
-        $idx   = $idxes[$pos] ?? $pos;
-        $image = trim($imgUrls[$pos] ?? '');
-        $uploadKey = 'item_upload_' . $idx;
-        if (!empty($_FILES[$uploadKey]['name'])) {
-            $safe = preg_replace('/[^a-z0-9_\-]/', '', strtolower($name)) ?: 'item';
-            $up = handleUpload($uploadKey, $indId . '_' . $safe);
-            if ($up) $image = $up;
-        }
-        $item = ['id' => 'item_' . uniqid(), 'name' => $name, 'image' => $image];
-        foreach ($fieldKeys as $fk) {
-            $vals  = $_POST['fv_' . $fk] ?? [];
-            $raw   = trim($vals[$pos] ?? '');
-            // Find field type for this key to cast numbers properly
-            $item[$fk] = $raw;
-        }
-        $items[] = $item;
-    }
-    foreach ($inds as &$ind) {
-        if ($ind['id'] === $indId) { $ind['items'] = $items; break; }
-    }
-    unset($ind);
-    saveJson('industries.json', ['industries' => $inds]);
-    $success = 'Items saved.';
-    $action = 'industry-' . $indId;
 }
 
 // ==================== UPLOAD HANDLER (FINAL WORKING VERSION) ====================
@@ -287,7 +185,6 @@ function handleUpload($fileKey, $nameBase) {
     if ($err !== UPLOAD_ERR_OK) return null;
     if (empty($_FILES[$fileKey]['tmp_name'])) return null;
 
-    // File size limit: 2MB
     if ($_FILES[$fileKey]['size'] > 2 * 1024 * 1024) return null;
 
     $allowed = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
@@ -298,16 +195,12 @@ function handleUpload($fileKey, $nameBase) {
 
     $ext = ['image/png'=>'png','image/jpeg'=>'jpg','image/gif'=>'gif','image/webp'=>'webp'][$mime];
 
-    // Sanitize base name
     $safeName = preg_replace('/[^a-z0-9_\-]/', '', strtolower($nameBase));
     if ($safeName === '') $safeName = 'upload';
     $filename = $safeName . '_' . time() . '.' . $ext;
 
-    // Ensure directory exists + writable
     if (!is_dir(UPLOADS_DIR)) {
-        if (!mkdir(UPLOADS_DIR, 0755, true)) {
-            return null;
-        }
+        mkdir(UPLOADS_DIR, 0755, true);
     }
     if (!is_writable(UPLOADS_DIR)) {
         return null;
@@ -315,20 +208,12 @@ function handleUpload($fileKey, $nameBase) {
 
     $dest = UPLOADS_DIR . $filename;
 
-    // NO realpath check → works on Hostinger
     if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $dest)) {
         return UPLOADS_URL . $filename;
     }
     return null;
 }
-
-    // ============================================================
-
-    if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $dest)) {
-        return UPLOADS_URL . $filename;
-    }
-    return null;
-}
+// ============================================================
 
 // ==================== LOAD DATA FOR DISPLAY ====================
 $token      = loadJson('token.json');
