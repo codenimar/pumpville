@@ -148,42 +148,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-posts') {
     $action = 'posts';
 }
 
+// ==================== INDUSTRY SAVE HANDLERS (ALL FIXED) ====================
+
 // --- Add new industry ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-add-industry') {
-    $indData2   = loadJson('industries.json');
-    $industries2 = $indData2['industries'] ?? [];
+    $indData    = loadJson('industries.json');
+    $industries = $indData['industries'] ?? [];
     $name = trim($_POST['ind_name'] ?? '');
     $icon = trim($_POST['ind_icon'] ?? '🏭');
     $desc = trim($_POST['ind_desc'] ?? '');
     if ($name !== '') {
         $id = preg_replace('/[^a-z0-9_\-]/', '', strtolower(str_replace(' ', '_', $name)));
         if ($id === '') $id = 'ind_' . time();
-        if (in_array($id, array_column($industries2, 'id'))) $id .= '_' . time();
+        if (in_array($id, array_column($industries, 'id'))) $id .= '_' . time();
+
         $image = '';
-        if (!empty($_FILES['ind_image']['name'])) {
+        if (!empty($_FILES['ind_image']['tmp_name']) && $_FILES['ind_image']['error'] === UPLOAD_ERR_OK) {
             $up = handleUpload('ind_image', 'industry_' . $id);
             if ($up) $image = $up;
         }
-        $industries2[] = [
-            'id' => $id,
-            'name' => $name,
-            'icon' => $icon,
+
+        $industries[] = [
+            'id'          => $id,
+            'name'        => $name,
+            'icon'        => $icon,
             'description' => $desc,
-            'image' => $image,
-            'items' => []
+            'image'       => $image,
+            'items'       => [],
+            'fields'      => []   // you can add fields later
         ];
-        saveJson('industries.json', ['industries' => $industries2]);
-        $success = 'New industry added.';
+        saveJson('industries.json', ['industries' => $industries]);
+        $success = 'New industry created successfully.';
         $action = 'industries';
     }
 }
 
-// --- Save industry items (FIXED) ---
+// --- Edit existing industry (name, icon, description, image) ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-edit-industry') {
+    $indData    = loadJson('industries.json');
+    $industries = $indData['industries'] ?? [];
+    $industryId = $_POST['edit_ind_id'] ?? '';
+
+    foreach ($industries as &$ind) {
+        if ($ind['id'] === $industryId) {
+            $ind['name']        = trim($_POST['edit_ind_name'] ?? $ind['name']);
+            $ind['icon']        = trim($_POST['edit_ind_icon'] ?? $ind['icon']);
+            $ind['description'] = trim($_POST['edit_ind_desc'] ?? $ind['description']);
+
+            if (!empty($_FILES['edit_ind_image']['tmp_name']) && $_FILES['edit_ind_image']['error'] === UPLOAD_ERR_OK) {
+                // delete old image if exists
+                if (!empty($ind['image']) && file_exists(__DIR__ . '/../' . $ind['image'])) {
+                    @unlink(__DIR__ . '/../' . $ind['image']);
+                }
+                $up = handleUpload('edit_ind_image', 'industry_' . $industryId);
+                if ($up) $ind['image'] = $up;
+            }
+            break;
+        }
+    }
+    saveJson('industries.json', ['industries' => $industries]);
+    $success = 'Industry updated successfully.';
+    $action = 'industries';
+}
+
+// --- Save industry items (with image upload/replace) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry-items') {
     $indData    = loadJson('industries.json');
     $industries = $indData['industries'] ?? [];
     $industryId = $_POST['industry_id'] ?? '';
-    
+
     $editInd = null;
     foreach ($industries as &$ind) {
         if ($ind['id'] === $industryId) {
@@ -192,9 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry-items') 
         }
     }
 
-    if (!$editInd) {
-        $error = 'Industry not found.';
-    } else {
+    if ($editInd) {
         $items = [];
         $names = $_POST['item_name'] ?? [];
         $oldImgs = $_POST['item_img'] ?? [];
@@ -205,25 +236,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry-items') 
 
             $item = ['name' => $name];
 
-            // Handle new image upload (item_upload_0, item_upload_1, ...)
+            // New image upload
             $fileKey = "item_upload_{$i}";
             if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] === UPLOAD_ERR_OK) {
-                // Delete old image if exists
-                $oldImage = $oldImgs[$i] ?? '';
-                if ($oldImage && file_exists(__DIR__ . '/../' . $oldImage)) {
-                    @unlink(__DIR__ . '/../' . $oldImage);
+                // delete old image
+                $old = $oldImgs[$i] ?? '';
+                if ($old && file_exists(__DIR__ . '/../' . $old)) {
+                    @unlink(__DIR__ . '/../' . $old);
                 }
                 $up = handleUpload($fileKey, "item_{$industryId}_{$i}");
                 if ($up) {
                     $item['image'] = $up;
                 } else {
-                    $item['image'] = $oldImage; // fallback
+                    $item['image'] = $old;
                 }
             } else {
                 $item['image'] = $oldImgs[$i] ?? '';
             }
 
-            // Custom fields (price, volume, etc.)
+            // custom fields (price, volume, etc.)
             $fields = $editInd['fields'] ?? [];
             foreach ($fields as $f) {
                 $key = $f['key'];
@@ -232,7 +263,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry-items') 
                     $item[$key] = $f['type'] === 'number' ? (float)$val : trim($val);
                 }
             }
-
             $items[] = $item;
         }
 
@@ -242,6 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry-items') 
         $action = "industry-{$industryId}";
     }
 }
+// ============================================================
 
 // ==================== UPLOAD HANDLER (FINAL WORKING VERSION) ====================
 function handleUpload($fileKey, $nameBase) {
