@@ -277,7 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry-items') 
     $action = 'industry-' . $indId;
 }
 
-// ==================== UPLOAD HANDLER (FINAL FIXED VERSION) ====================
+// ==================== UPLOAD HANDLER (FINAL WORKING VERSION) ====================
 function handleUpload($fileKey, $nameBase) {
     $err = $_FILES[$fileKey]['error'] ?? UPLOAD_ERR_NO_FILE;
     if ($err === UPLOAD_ERR_NO_FILE) return null;
@@ -300,7 +300,7 @@ function handleUpload($fileKey, $nameBase) {
     if ($safeName === '') $safeName = 'upload';
     $filename = $safeName . '_' . time() . '.' . $ext;
 
-    // Ensure directory exists + writable (these already pass on your server)
+    // Ensure directory exists + writable
     if (!is_dir(UPLOADS_DIR)) {
         if (!mkdir(UPLOADS_DIR, 0755, true)) {
             return null;
@@ -312,10 +312,7 @@ function handleUpload($fileKey, $nameBase) {
 
     $dest = UPLOADS_DIR . $filename;
 
-    // ==================== NO REALPATH CHECK ====================
-    // Removed completely — safe here because path is fixed + filename is sanitized
-    // (prevents the silent failure on your hosting)
-
+    // NO realpath check → works on Hostinger/shared hosting
     if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $dest)) {
         return UPLOADS_URL . $filename;
     }
