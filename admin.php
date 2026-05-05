@@ -178,6 +178,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-add-industry') {
     }
 }
 
+// --- Save industry items (FIXED) ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save-industry-items') {
+    $indData    = loadJson('industries.json');
+    $industries = $indData['industries'] ?? [];
+    $industryId = $_POST['industry_id'] ?? '';
+    
+    $editInd = null;
+    foreach ($industries as &$ind) {
+        if ($ind['id'] === $industryId) {
+            $editInd = &$ind;
+            break;
+        }
+    }
+
+    if (!$editInd) {
+        $error = 'Industry not found.';
+    } else {
+        $items = [];
+        $names = $_POST['item_name'] ?? [];
+        $oldImgs = $_POST['item_img'] ?? [];
+
+        foreach ($names as $i => $name) {
+            $name = trim($name);
+            if ($name === '') continue;
+
+            $item = ['name' => $name];
+
+            // Handle new image upload (item_upload_0, item_upload_1, ...)
+            $fileKey = "item_upload_{$i}";
+            if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] === UPLOAD_ERR_OK) {
+                // Delete old image if exists
+                $oldImage = $oldImgs[$i] ?? '';
+                if ($oldImage && file_exists(__DIR__ . '/../' . $oldImage)) {
+                    @unlink(__DIR__ . '/../' . $oldImage);
+                }
+                $up = handleUpload($fileKey, "item_{$industryId}_{$i}");
+                if ($up) {
+                    $item['image'] = $up;
+                } else {
+                    $item['image'] = $oldImage; // fallback
+                }
+            } else {
+                $item['image'] = $oldImgs[$i] ?? '';
+            }
+
+            // Custom fields (price, volume, etc.)
+            $fields = $editInd['fields'] ?? [];
+            foreach ($fields as $f) {
+                $key = $f['key'];
+                $val = $_POST["fv_{$key}"][$i] ?? '';
+                if ($val !== '') {
+                    $item[$key] = $f['type'] === 'number' ? (float)$val : trim($val);
+                }
+            }
+
+            $items[] = $item;
+        }
+
+        $editInd['items'] = $items;
+        saveJson('industries.json', ['industries' => $industries]);
+        $success = 'Items saved successfully.';
+        $action = "industry-{$industryId}";
+    }
+}
+
 // ==================== UPLOAD HANDLER (FINAL WORKING VERSION) ====================
 function handleUpload($fileKey, $nameBase) {
     $err = $_FILES[$fileKey]['error'] ?? UPLOAD_ERR_NO_FILE;
