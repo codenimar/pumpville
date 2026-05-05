@@ -139,22 +139,10 @@ $token = loadJson('token.json');
         }
         .card { padding: 24px 28px; min-height: 178px; }
     </style>
-
-        <!-- Token Info Banner -->
-        <?php if (!empty($token['description'])): ?>
-        <div class="glass border border-emerald-500/20 rounded-2xl p-4 mb-8 flex items-start gap-x-4">
-            <span class="text-2xl mt-0.5">🐸</span>
-            <div>
-                <p class="font-semibold text-emerald-400 text-sm mb-1"><?= htmlspecialchars($token['title'] ?? '$PUMPVILLE Token') ?></p>
-                <p class="text-zinc-300 text-sm"><?= htmlspecialchars($token['description']) ?></p>
-            </div>
-        </div>
-        <?php endif; ?>
-
         <!-- Header -->
         <div class="flex items-center justify-between mb-10">
             <div>
-                <h1 class="title-font text-3xl font-semibold tracking-tight">Live Token Dashboard</h1>
+                <h1 class="title-font text-3xl font-semibold tracking-tight">$PUMPVILLE Dashboard</h1>
                 <div class="flex items-center gap-x-2 text-sm mt-1">
                     <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                     <span class="text-emerald-400 font-medium">LIVE • Solana Mainnet</span>

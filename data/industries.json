@@ -4,38 +4,127 @@
             "id": "fishing",
             "name": "Fishing",
             "icon": "🎣",
-            "description": "Cast your line and reel in a variety of fish to earn XP and coins. Different baits attract different fish — master the art of fishing to find the rarest catches.",
-            "image": "",
+            "description": "Cast your line and reel in a variety of fish.",
+            "image": "assets\/uploads\/industry_fishing_1777752597.png",
             "fields": [
-                {"key": "rarity", "label": "Rarity", "type": "text"},
-                {"key": "xp", "label": "XP", "type": "number"},
-                {"key": "value", "label": "Value (coins)", "type": "number"},
-                {"key": "baits", "label": "Baits", "type": "text"}
+                {
+                    "key": "rarity",
+                    "label": "Rarity",
+                    "type": "text"
+                },
+                {
+                    "key": "xp",
+                    "label": "XP",
+                    "type": "number"
+                },
+                {
+                    "key": "value",
+                    "label": "Value (coins)",
+                    "type": "number"
+                },
+                {
+                    "key": "baits",
+                    "label": "Baits",
+                    "type": "text"
+                },
+                {
+                    "key": "hp",
+                    "label": "HP",
+                    "type": "text"
+                }
             ],
             "items": [
-                {"id": "item_1", "name": "Bass",    "image": "assets/bass.png",     "rarity": "Common",   "xp": 15, "value": 25, "baits": "Worm, Minnow"},
-                {"id": "item_2", "name": "Goldfish", "image": "assets/goldfish.png", "rarity": "Common",   "xp": 5,  "value": 10, "baits": "Worm, Bread"},
-                {"id": "item_3", "name": "Trout",   "image": "",                    "rarity": "Uncommon", "xp": 20, "value": 35, "baits": "Fly, Worm"},
-                {"id": "item_4", "name": "Catfish", "image": "",                    "rarity": "Uncommon", "xp": 25, "value": 40, "baits": "Chicken Liver, Worm"},
-                {"id": "item_5", "name": "Carp",    "image": "",                    "rarity": "Common",   "xp": 10, "value": 15, "baits": "Bread, Corn"},
-                {"id": "item_6", "name": "Perch",   "image": "",                    "rarity": "Common",   "xp": 12, "value": 20, "baits": "Worm, Minnow"},
-                {"id": "item_7", "name": "Salmon",  "image": "",                    "rarity": "Rare",     "xp": 30, "value": 50, "baits": "Fly, Spinner"},
-                {"id": "item_8", "name": "Pike",    "image": "",                    "rarity": "Rare",     "xp": 35, "value": 60, "baits": "Minnow, Spinner"},
-                {"id": "item_9", "name": "Tilapia", "image": "",                    "rarity": "Common",   "xp": 8,  "value": 12, "baits": "Worm, Bread"}
+                {
+                    "id": "item_69f664371e4d7",
+                    "name": "Shrimp",
+                    "image": "assets\/uploads\/fishing_shrimp_1777752831.png",
+                    "rarity": "Common",
+                    "xp": "10",
+                    "value": "10",
+                    "baits": "Common, Uncommon, Rare, Epic, Legendary, Mythic",
+                    "hp": "1"
+                },
+                {
+                    "id": "item_69f664371e4e2",
+                    "name": "Bass",
+                    "image": "assets\/uploads\/fishing_bass_1777753773.png",
+                    "rarity": "Common",
+                    "xp": "10",
+                    "value": "11",
+                    "baits": "Common, Uncommon, Rare, Epic, Legendary, Mythic",
+                    "hp": "1"
+                },
+                {
+                    "id": "item_69f664371e4e4",
+                    "name": "Goldfish",
+                    "image": "assets\/uploads\/fishing_goldfish_1777753773.png",
+                    "rarity": "Common",
+                    "xp": "10",
+                    "value": "12",
+                    "baits": "Common, Uncommon, Rare, Epic, Legendary, Mythic",
+                    "hp": "1"
+                },
+                {
+                    "id": "item_69f664371e4e5",
+                    "name": "Tadpole",
+                    "image": "assets\/uploads\/fishing_tadpole_1777754045.png",
+                    "rarity": "Common",
+                    "xp": "10",
+                    "value": "9",
+                    "baits": "Common, Uncommon, Rare, Epic, Legendary, Mythic",
+                    "hp": "1"
+                },
+                {
+                    "id": "item_69f664371e4e6",
+                    "name": "Anchovy",
+                    "image": "assets\/uploads\/fishing_anchovy_1777755112.png",
+                    "rarity": "Common",
+                    "xp": "10",
+                    "value": "8",
+                    "baits": "Common, Uncommon, Rare, Epic, Legendary, Mythic",
+                    "hp": "1"
+                },
+                {
+                    "id": "item_69f664371e4e7",
+                    "name": "Carp",
+                    "image": "assets\/uploads\/fishing_carp_1777755112.png",
+                    "rarity": "Common",
+                    "xp": "10",
+                    "value": "9",
+                    "baits": "Common, Uncommon, Rare, Epic, Legendary, Mythic",
+                    "hp": "1"
+                },
+                {
+                    "id": "item_69f664371e4e8",
+                    "name": "Goby",
+                    "image": "assets\/uploads\/fishing_goby_1777755112.png",
+                    "rarity": "Common",
+                    "xp": "10",
+                    "value": "10",
+                    "baits": "Common, Uncommon, Rare, Epic, Legendary, Mythic",
+                    "hp": "1"
+                },
+                {
+                    "id": "item_69f664371e4e9",
+                    "name": "Minnow",
+                    "image": "assets\/uploads\/fishing_minnow_1777755112.png",
+                    "rarity": "Common",
+                    "xp": "10",
+                    "value": "8",
+                    "baits": "Common, Uncommon, Rare, Epic, Legendary, Mythic",
+                    "hp": "1"
+                },
+                {
+                    "id": "item_69f664371e6e6",
+                    "name": "Catfish",
+                    "image": "assets\/uploads\/fishing_catfish_1777755191.png",
+                    "rarity": "Common",
+                    "xp": "10",
+                    "value": "10",
+                    "baits": "Common, Uncommon, Rare, Epic, Legendary, Mythic",
+                    "hp": "1"
+                }
             ]
-        },
-        {
-            "id": "farming",
-            "name": "Farming",
-            "icon": "🌾",
-            "description": "Grow crops and harvest resources to supply the Pumpville economy. Trade your produce for coins and XP.",
-            "image": "",
-            "fields": [
-                {"key": "rarity", "label": "Rarity", "type": "text"},
-                {"key": "xp", "label": "XP", "type": "number"},
-                {"key": "value", "label": "Value (coins)", "type": "number"}
-            ],
-            "items": []
         },
         {
             "id": "mining",
@@ -44,9 +133,21 @@
             "description": "Dig deep into the earth to find valuable ores and gems. Mine resources to craft powerful items.",
             "image": "",
             "fields": [
-                {"key": "rarity", "label": "Rarity", "type": "text"},
-                {"key": "xp", "label": "XP", "type": "number"},
-                {"key": "value", "label": "Value (coins)", "type": "number"}
+                {
+                    "key": "rarity",
+                    "label": "Rarity",
+                    "type": "text"
+                },
+                {
+                    "key": "xp",
+                    "label": "XP",
+                    "type": "number"
+                },
+                {
+                    "key": "value",
+                    "label": "Value (coins)",
+                    "type": "number"
+                }
             ],
             "items": []
         }
