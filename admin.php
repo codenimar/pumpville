@@ -1,4 +1,7 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once __DIR__ . '/includes/auth.php';
 
 $error = '';
@@ -312,12 +315,13 @@ function handleUpload($fileKey, $nameBase) {
 
     $dest = UPLOADS_DIR . $filename;
 
-    // NO realpath check → works on Hostinger/shared hosting
+    // NO realpath check → works on Hostinger
     if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $dest)) {
         return UPLOADS_URL . $filename;
     }
     return null;
 }
+
     // ============================================================
 
     if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $dest)) {
