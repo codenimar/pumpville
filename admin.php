@@ -295,13 +295,27 @@ function handleUpload($fileKey, $nameBase) {
     $safeName = preg_replace('/[^a-z0-9_\-]/', '', strtolower($nameBase));
     if ($safeName === '') $safeName = 'upload';
     $filename = $safeName . '_' . time() . '.' . $ext;
-    if (!is_dir(UPLOADS_DIR)) mkdir(UPLOADS_DIR, 0755, true);
+    // Ensure uploads directory exists with proper permissions
+    if (!is_dir(UPLOADS_DIR)) {
+        if (!mkdir(UPLOADS_DIR, 0755, true)) {
+            return null; // Failed to create directory
+        }
+    }
+    // Ensure directory is writable
+    if (!is_writable(UPLOADS_DIR)) {
+        return null; // Directory exists but not writable
+    }
     $dest = UPLOADS_DIR . $filename;
-    // Verify destination stays within UPLOADS_DIR (realpath after mkdir so dir exists)
+    // Use realpath safely: get the real path of the directory and verify the destination
     $uploadsReal = realpath(UPLOADS_DIR);
-    if ($uploadsReal === false) return null;
-    $destReal = $uploadsReal . DIRECTORY_SEPARATOR . $filename;
-    if (strpos($destReal, $uploadsReal . DIRECTORY_SEPARATOR) !== 0) return null;
+    if ($uploadsReal === false) {
+        return null; // realpath failed
+    }
+    // Verify destination stays within UPLOADS_DIR (prevent directory traversal)
+    $destReal = realpath(dirname($dest));
+    if ($destReal === false || $destReal !== $uploadsReal) {
+        return null; // Path traversal attempt or other issue
+    }
     if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $dest)) {
         return UPLOADS_URL . $filename;
     }
@@ -344,7 +358,7 @@ $pageTitle = 'Admin · $PUMPVILLE';
         .btn-primary:hover { background: #34d399; }
         .btn-danger { background: #ef4444; color: #fff; padding: 0.4rem 0.875rem; border-radius: 0.625rem; font-size: 0.75rem; font-weight: 600; transition: background 0.15s; cursor: pointer; }
         .btn-danger:hover { background: #f87171; }
-        .sidebar-link { display: flex; align-items: center; gap: 0.625rem; padding: 0.625rem 0.875rem; border-radius: 0.75rem; font-size: 0.875rem; font-weight: 500; color: #a1a1aa; transition: all 0.15s; text-decoration: none; }
+        .sidebar-link { display: flex; align-items: center; gap: 0.625rem; padding: 0.625rem 0.875rem; border-radius: 0.75rem; font-size: 0.875rem; font-weight: 500; color: #a1a1aa; transition: all 0.15s; }
         .sidebar-link:hover { background: rgba(255,255,255,0.05); color: #fff; }
         .sidebar-link.active { background: rgba(16,185,129,0.15); color: #34d399; }
         .pixel-img { image-rendering: pixelated; image-rendering: crisp-edges; }
@@ -510,8 +524,8 @@ $pageTitle = 'Admin · $PUMPVILLE';
             const list = document.getElementById('highlights-list');
             const row = document.createElement('div');
             row.className = 'flex gap-x-2 highlight-row';
-            row.innerHTML = `<input type="text" name="h_icon[]" placeholder="🐸" class="input w-16 text-center" style="background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;color:#fff;font-size:0.875rem;">
-                <input type="text" name="h_text[]" placeholder="Highlight text" class="input flex-1" style="background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;color:#fff;font-size:0.875rem;">
+            row.innerHTML = `<input type="text" name="h_icon[]" placeholder="🐸" class="input w-16 text-center" style="background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;">
+                <input type="text" name="h_text[]" placeholder="Highlight text" class="input flex-1" style="background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;">
                 <button type="button" onclick="this.closest('.highlight-row').remove()" style="background:#ef4444;color:#fff;padding:0.4rem 0.875rem;border-radius:0.625rem;font-size:0.75rem;font-weight:600;cursor:pointer;">✕</button>`;
             list.appendChild(row);
         }
@@ -619,7 +633,7 @@ $pageTitle = 'Admin · $PUMPVILLE';
                     <div><label style="font-size:0.75rem;font-weight:500;color:#71717a;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:0.375rem;display:block;">Post URL</label>
                     <input type="url" name="post_url[]" placeholder="https://x.com/..." style="background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;width:100%;color:#fff;font-size:0.875rem;"></div>
                 </div>
-                <div style="margin-bottom:0.75rem;"><label style="font-size:0.75rem;font-weight:500;color:#71717a;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:0.375rem;display:block;">Description</label>
+                <div style="margin-bottom:0.75rem;"><label style="font-size:0.75rem;font-weight:500;color:#71717a;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:0.375rem;display:block;">Description / Caption</label>
                 <textarea name="post_desc[]" rows="2" placeholder="Post text..." style="background:#27272a;border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.625rem 0.875rem;width:100%;color:#fff;font-size:0.875rem;resize:none;"></textarea></div>
                 <button type="button" onclick="this.closest('.post-row').remove()" style="background:#ef4444;color:#fff;padding:0.4rem 0.875rem;border-radius:0.625rem;font-size:0.75rem;font-weight:600;cursor:pointer;">Remove</button>`;
             list.appendChild(div);
